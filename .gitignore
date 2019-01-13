@@ -1,0 +1,6 @@
+instances/**
+obj/**
+bin/**
+gnuplot
+*.jpg
+*.lp
