@@ -185,6 +185,11 @@ class CVRPInstance
         return graph_.nodeNum();
     }
     
+    size_t getNumberOfEdges() const noexcept
+    {
+        return graph_.edgeNum();
+    }
+    
     auto idOf(const GraphType::Node& node) const noexcept
     {
         return graph_.id(node);

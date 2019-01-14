@@ -12,6 +12,7 @@
 #include <lemon/list_graph.h>
 #include <ilcplex/ilocplex.h>
 
+#include <lemon/nagamochi_ibaraki.h>
 
 
 ILOSTLBEGIN
@@ -108,7 +109,7 @@ int main()
     std::cout << Coordinates() << std::endl;
     
     InstanceLoader loader{};
-    auto inst = *loader.loadInstance("instances/A/A-n32-k5.vrp");
+    auto inst = *loader.loadInstance("instances/A/A-n13-k4.vrp");
     std::cout << inst.getCoordinatesOf(inst.getNode(5)) << " : " << inst.getCoordinatesOf(inst.getNode(8)) << std::endl;
     
     size_t iddd = 0;
@@ -121,6 +122,12 @@ int main()
     
     using FirstSolver = Solver::RouteAffectationBinPackingAdaptor<Solver::BinPackingMIPSolver>;
     Solver::TwoStepsCVRPSolver<FirstSolver, Solver::TwoOptTSPSolver> solver4({inst}, {});
+    
+    Data::CVRPInstance::GraphType::EdgeMap<int> dmap{inst.getUnderlyingGraph()};
+    lemon::NagamochiIbaraki<Data::CVRPInstance::GraphType, Data::CVRPInstance::GraphType::EdgeMap<int>> naga{inst.getUnderlyingGraph(), dmap};
+    naga.run();
+    std::cout << "got it !" << std::endl;
+    
     Solver::MtzCVRPSolver solver5;
     
     std::cout << "Now solving using MTZ MIP : " << std::endl;

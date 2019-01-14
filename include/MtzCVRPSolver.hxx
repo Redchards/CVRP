@@ -8,9 +8,34 @@
 #include <CVRPInstance.hxx>
 #include <CVRPSolution.hxx>
 #include <GenericCVRPSolver.hxx>
+#include <Optional.hxx>
+#include <MtzCutHelper.hxx>
 
 #include <ilcplex/ilocplex.h>
 #include <ilconcert/iloexpression.h>
+
+
+ILOUSERCUTCALLBACK2(UserCutMtzCVRPSeparation, const Data::CVRPInstance&, instance, const std::vector<IloBoolVar>&, arcVarArray)
+{
+    std::vector<double> arcValueArray(arcVarArray.size());
+    const auto& graph = instance.getUnderlyingGraph();
+    
+    for(auto edge = instance.getEdgeIt(); edge != lemon::INVALID; ++edge)
+    {
+        size_t id1 = instance.idOf(graph.u(edge));
+        size_t id2 = instance.idOf(graph.v(edge));
+        
+        arcValueArray[id1 * instance.getNumberOfNodes() + id2 - 1] = getValue(arcVarArray[id1 * instance.getNumberOfNodes() + id2 - 1]);
+        arcValueArray[id2 * instance.getNumberOfNodes() + id1 - 1] = getValue(arcVarArray[id2 * instance.getNumberOfNodes() + id1 - 1]);
+    }
+    
+    optional<IloRange> newExpr = CutHelper::MtzUserCut(getEnv(), instance, arcVarArray, arcValueArray);
+    
+    if(newExpr)
+    {
+        add(*newExpr, IloCplex::UseCutForce);
+    }
+}
 
 namespace Solver
 {
@@ -129,6 +154,9 @@ class MtzCVRPSolver : GenericCVRPSolver<MtzCVRPSolver>
             //model.add(mtzConstraints2);
             
             IloCplex cplex(model);
+            
+            cplex.add(UserCutMtzCVRPSeparation(env, instance, arcVarArray));
+            
             cplex.exportModel("sortie.lp");
             std::cout << "Model built ... Ready to solve" << std::endl;
             if (!cplex.solve()) {
