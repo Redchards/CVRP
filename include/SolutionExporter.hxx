@@ -54,13 +54,13 @@ class SolutionExporter
             
             auto depotNode = solution.getOriginalInstance().getDepotNode();
             auto depotPos = solution.getOriginalInstance().getCoordinatesOf(depotNode);
-            std::string depotNodeData = std::to_string(depotPos.x) + " " + std::to_string(depotPos.y) + " " + std::to_string(solution.getOriginalInstance().idOfDepot()) + "\n";
+            std::string depotNodeData = std::to_string(depotPos.x) + " " + std::to_string(depotPos.y) + " " + std::to_string(solution.getOriginalInstance().idOfDepot() + 1) + "\n";
             
             partialGraphData += depotNodeData;
             for(const auto& node : route)
             {
                 auto pos = solution.getOriginalInstance().getCoordinatesOf(node);
-                partialGraphData += std::to_string(pos.x) + " " + std::to_string(pos.y) + " " + std::to_string(solution.getOriginalInstance().idOf(node)) + "\n";
+                partialGraphData += std::to_string(pos.x) + " " + std::to_string(pos.y) + " " + std::to_string(solution.getOriginalInstance().idOf(node) + 1) + "\n";
             }
             partialGraphData += depotNodeData; 
             partialGraphData += "e";
@@ -130,7 +130,7 @@ class SolutionExporter
     const char* linePlotCommand1_ = "using 1:2 with lines lc rgb \\\"";
     const char* linePlotCommand2_ = "\\\" lw 2 title ";
     
-    const char* nodePlotCommand1_ = "using 1:2:(0.3) with circles fill solid lc rgb \\\"";
+    const char* nodePlotCommand1_ = "using 1:2 with circles fill solid lc rgb \\\"";
     const char* nodePlotCommand2_ = "\\\" notitle";
     
     const char* labelPlotCommand1_ = "using 1:2:3 with labels tc rgb \\\"";

@@ -109,7 +109,7 @@ int main()
     std::cout << Coordinates() << std::endl;
     
     InstanceLoader loader{};
-    auto inst = *loader.loadInstance("instances/A/A-n13-k4.vrp");
+    auto inst = *loader.loadInstance("instances/P/P-n16-k8.vrp");
     std::cout << inst.getCoordinatesOf(inst.getNode(5)) << " : " << inst.getCoordinatesOf(inst.getNode(8)) << std::endl;
     
     size_t iddd = 0;
@@ -117,7 +117,7 @@ int main()
     for(auto n = inst.getNodeIt(); n != lemon::INVALID; ++n)
     {
         iddd++;
-        std::cout << iddd << " : " << inst.getCoordinatesOf(n) << " : " << inst.getDemandOf(n) << std::endl;
+        std::cout << inst.idOf(n) << " : " << inst.getCoordinatesOf(n) << " : " << inst.getDemandOf(n) << std::endl;
     }
     
     using FirstSolver = Solver::RouteAffectationBinPackingAdaptor<Solver::BinPackingMIPSolver>;

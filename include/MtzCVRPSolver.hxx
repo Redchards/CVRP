@@ -136,9 +136,11 @@ class MtzCVRPSolver : GenericCVRPSolver<MtzCVRPSolver>
                 auto ni = instance.getNode(i);
                 IloInt di = instance.getDemandOf(ni);
                 //std::cout << i << " : " << di << std::endl;
-                for(size_t j = 1; j < instance.getNumberOfNodes(); ++j)
+                for(size_t j = 0; j < instance.getNumberOfNodes(); ++j)
                 {
                     if(i == j) continue;
+                    
+                    //std::cout << "(" << i << ", " << j << ") : " << arcVarArray[i * instance.getNumberOfNodes() + j - 1].getName() << " : " << arcVarArray[j * instance.getNumberOfNodes() + i - 1].getName() << std::endl;
                     mtzConstraints1.add((mtzVarArray[i] - mtzVarArray[j]) >= (di - static_cast<IloInt>(instance.getVehicleCapacity() + di) * (1 - arcVarArray[i * instance.getNumberOfNodes() + j - 1])));
                 }
             }
