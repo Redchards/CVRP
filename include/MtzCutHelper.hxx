@@ -7,6 +7,8 @@
 #include <CVRPInstance.hxx>
 #include <Optional.hxx>
 
+#include <lemon/full_graph.h>
+#include <lemon/hao_orlin.h>
 #include <lemon/nagamochi_ibaraki.h>
 
 #include <ilcplex/ilocplex.h>
@@ -15,7 +17,7 @@
 namespace CutHelper
 {
     
-optional<IloRange> MtzUserCut(const IloEnv& env, const Data::CVRPInstance& instance, const std::vector<IloBoolVar>& arcVarArray, const std::vector<double>& arcValueArray)
+optional<IloRange> MtzSymmetricUserCut(const IloEnv& env, const Data::CVRPInstance& instance, const std::vector<IloBoolVar>& arcVarArray, const std::vector<double>& arcValueArray)
 {
     using GraphType = Data::CVRPInstance::GraphType;   
     using CapacityMap = GraphType::EdgeMap<int>;
@@ -58,6 +60,64 @@ optional<IloRange> MtzUserCut(const IloEnv& env, const Data::CVRPInstance& insta
         {
             if(minCut[n] == true) secondSet.push_back(instance.idOf(n));
             else                     firstSet.push_back(instance.idOf(n));
+        }
+        
+        for(auto id1 : firstSet)
+        {
+            for(auto id2 : secondSet)
+            {
+                expr += arcVarArray[id1 * instance.getNumberOfNodes() + id2 - 1];
+            }
+        }
+        
+        return expr >= 1; 
+    }
+    
+    return {};
+}
+
+
+optional<IloRange> MtzAssymmetricUserCut(const IloEnv& env, const Data::CVRPInstance& instance, const std::vector<IloBoolVar>& arcVarArray, const std::vector<double>& arcValueArray)
+{
+    using GraphType = lemon::FullDigraph;   
+    using CapacityMap = GraphType::ArcMap<int>;
+    using NodeMap = GraphType::NodeMap<bool>;
+    
+    static constexpr double REGULARIZATION_FACTOR = 1000.0;
+    static constexpr double epsilon = 0.01;
+    static constexpr size_t cutThreshold = 1;
+    
+    const GraphType& graph{static_cast<int>(instance.getNumberOfNodes())};
+    
+    CapacityMap flowCapacityMap{graph}; 
+    
+    for(GraphType::ArcIt arc{graph}; arc != lemon::INVALID; ++arc)
+    {
+        size_t id1 = graph.id(graph.source(arc));
+        size_t id2 = graph.id(graph.target(arc));
+        
+        auto v = arcValueArray[id1 * instance.getNumberOfNodes() + id2 - 1];
+        
+        flowCapacityMap[arc] = v > epsilon ? v * REGULARIZATION_FACTOR : 0.0;
+    }
+    
+    lemon::HaoOrlin<GraphType, CapacityMap> minCutAlgo{graph, flowCapacityMap};
+    minCutAlgo.run(); 
+    
+    NodeMap minCut{graph};
+    IloExpr expr{env};
+    auto minCutValue = minCutAlgo.minCutMap(minCut) / REGULARIZATION_FACTOR;
+    // std::cout << minCutValue << std::endl;
+    if(minCutValue < (cutThreshold - epsilon))
+    {
+        // std::cout << "CUT FOUND ! " << minCutValue << std::endl;
+        std::vector<size_t> firstSet;
+        std::vector<size_t> secondSet;
+        
+        for(GraphType::NodeIt n{graph}; n != lemon::INVALID; ++n)
+        {
+            if(minCut[n] == true) secondSet.push_back(graph.id(n));
+            else                     firstSet.push_back(graph.id(n));
         }
         
         for(auto id1 : firstSet)

@@ -31,6 +31,11 @@ static inline void trim(std::string& s) {
 static inline bool is_prefix(const std::string& prefix, std::string& str) {
     auto res = std::mismatch(prefix.begin(), prefix.end(), str.begin());
     return res.first == prefix.end();
+} 
+
+bool is_number(const std::string &s) 
+{
+    return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
 }
 
 }

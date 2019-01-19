@@ -29,7 +29,7 @@ ILOUSERCUTCALLBACK2(UserCutMtzCVRPSeparation, const Data::CVRPInstance&, instanc
         arcValueArray[id2 * instance.getNumberOfNodes() + id1 - 1] = getValue(arcVarArray[id2 * instance.getNumberOfNodes() + id1 - 1]);
     }
     
-    optional<IloRange> newExpr = CutHelper::MtzUserCut(getEnv(), instance, arcVarArray, arcValueArray);
+    optional<IloRange> newExpr = CutHelper::MtzSymmetricUserCut(getEnv(), instance, arcVarArray, arcValueArray);
     
     if(newExpr)
     {

@@ -7,6 +7,7 @@
 #include <TwoStepsCVRPSolver.hxx>
 #include <SolutionExporter.hxx>
 #include <MtzCVRPSolver.hxx>
+#include <SweepRouteAffectationSolver.hxx>
 
 #include <iostream>
 #include <lemon/list_graph.h>
@@ -109,7 +110,7 @@ int main()
     std::cout << Coordinates() << std::endl;
     
     InstanceLoader loader{};
-    auto inst = *loader.loadInstance("instances/P/P-n16-k8.vrp");
+    auto inst = *loader.loadInstance("instances/P/P-n19-k2.vrp");
     std::cout << inst.getCoordinatesOf(inst.getNode(5)) << " : " << inst.getCoordinatesOf(inst.getNode(8)) << std::endl;
     
     size_t iddd = 0;
@@ -123,12 +124,7 @@ int main()
     using FirstSolver = Solver::RouteAffectationBinPackingAdaptor<Solver::BinPackingMIPSolver>;
     Solver::TwoStepsCVRPSolver<FirstSolver, Solver::TwoOptTSPSolver> solver4({inst}, {});
     
-    Data::CVRPInstance::GraphType::EdgeMap<int> dmap{inst.getUnderlyingGraph()};
-    lemon::NagamochiIbaraki<Data::CVRPInstance::GraphType, Data::CVRPInstance::GraphType::EdgeMap<int>> naga{inst.getUnderlyingGraph(), dmap};
-    naga.run();
-    std::cout << "got it !" << std::endl;
-    
-    Solver::MtzCVRPSolver solver5;
+    /*Solver::MtzCVRPSolver solver5;
     
     std::cout << "Now solving using MTZ MIP : " << std::endl;
     auto sol4 = solver5.solve(inst);
@@ -144,7 +140,7 @@ int main()
     std::cout << sol4.computeCost() << std::endl;
     
     SolutionExporter solExporter{};
-    solExporter.exportSolutionGraph(sol4, "plot.jpg");
+    solExporter.exportSolutionGraph(sol4, "plot.jpg");*/
     /*Solver::RouteAffectationBinPackingAdaptater<Solver::BinPackingMIPSolver> solver3{{std::vector<size_t>{7, 7}}};
     auto res3 = solver3.solve({3, 2, 3, 2, 2, 2});
     
@@ -157,6 +153,17 @@ int main()
         for(auto x : v)
             std::cout << x << std::endl;
     }*/
+    
+    Solver::SweepRouteAffectationSolver sweepSolver{{inst}};
+    
+    for(auto& route : sweepSolver.solve(inst))
+    {
+        for(auto& node : route)
+        {
+            std::cout << inst.idOf(node);
+        }
+        std::cout << std::endl;
+    }
 
     
     return 0;

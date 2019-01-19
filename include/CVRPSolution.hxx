@@ -39,6 +39,8 @@ class CVRPSolution
        
         for(const auto& route : data_) 
         {
+            size_t currentDemand = 0; 
+           
             auto current = route.begin();
             auto next = current + 1; 
             
@@ -48,13 +50,20 @@ class CVRPSolution
             }
             
             totalCost += instance_.getCostOf(instance_.getDepotNode(), *current);
+            currentDemand += instance_.getDemandOf(*current);
             
             for(; next != route.end(); ++current, ++next)
             {
                 totalCost += instance_.getCostOf(*current, *next);
+                currentDemand += instance_.getDemandOf(*current);
             }
             
             totalCost += instance_.getCostOf(*current, instance_.getDepotNode());
+            
+            if(currentDemand > instance_.getVehicleCapacity())
+            {
+                totalCost += (currentDemand - instance_.getVehicleCapacity()) * wrongCapacityPenalty_;
+            }
         }
         
         return totalCost;
@@ -73,6 +82,8 @@ class CVRPSolution
     private:
     const CVRPInstance& instance_;
     DataType data_;
+    
+    static constexpr double wrongCapacityPenalty_ = 100.0;
 };
 
 }

@@ -2,6 +2,7 @@
 #define FILE_STREAM_HXX
 
 #include <Configuration.hxx>
+#include <Platform.hxx>
 
 #include <gsl/gsl_assert.h>
 
@@ -368,6 +369,8 @@ public:
 	{
 		return this->fstream_.peek() == EOF;
 	}
+	
+	static constexpr char path_separator = OS_NAME == "Windows" ? '\\' : '/';
 
 private:
 	void init()
