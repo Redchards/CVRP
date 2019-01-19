@@ -370,7 +370,7 @@ public:
 		return this->fstream_.peek() == EOF;
 	}
 	
-	static constexpr char path_separator = OS_NAME == "Windows" ? '\\' : '/';
+	static constexpr char path_separator = '/';//(OS_NAME == "Windows" ? '\\' : '/');
 
 private:
 	void init()

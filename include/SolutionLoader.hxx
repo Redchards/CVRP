@@ -2,15 +2,20 @@
 #define SOLUTION_LOADER_HXX
 
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include <CVRPSolution.hxx>
 #include <FileStream.hxx>
-#include <Optional.hxx>
+#include <InstanceLoader.hxx>
 #include <StringUtils.hxx>
 
 class SolutionLoader
 {
+    private:
+    using CVRPInstance = Data::CVRPInstance;
+    using CVRPSolution = Solver::CVRPSolution;
+    
     public:
     SolutionLoader() = default;
    
@@ -25,7 +30,7 @@ class SolutionLoader
             std::vector<char> buffer;
             f.read(buffer, f.getFileSize());
            
-            std::string data{buffer.begin(), buffer.end()} 
+            std::string data{buffer.begin(), buffer.end()}; 
             
             auto start = 0;
             auto end = data.find(delim);
@@ -34,11 +39,12 @@ class SolutionLoader
             
             while(end != std::string::npos && !foundName)
             {
-                auto current = data.substr(start, end);
+                auto current = data.substr(start, end - start);
                 if(Utils::is_prefix("NAME", current))
                 {
                     auto startOfName = current.find(":");
-                    instanceName = Utils::trim(current.substr(0, startOfName));
+                    auto instanceName = current.substr(startOfName, current.length() -  1 - startOfName);
+                    Utils::trim(instanceName);
                     foundName = true;
                 }
                 
@@ -60,7 +66,7 @@ class SolutionLoader
         catch(const std::ifstream::failure& e)
         {
             std::cout << "Stream exception while trying to load the instance '" 
-                      << filename 
+                      << solutionFile
                       << "' : " 
                       << e.what() 
                       << std::endl;
@@ -68,7 +74,7 @@ class SolutionLoader
         catch(const std::invalid_argument& e)
         {
             std::cout << "Argument exception while trying to load the instance '"
-                      << filename
+                      << solutionFile
                       << "' : "
                       << e.what()
                       << std::endl;
@@ -77,7 +83,7 @@ class SolutionLoader
         return {};
     }
     
-    CVRPSolution loadSolution(const std::string& solutionFile, const std::string& instanceFile) 
+    optional<CVRPSolution> loadSolution(const std::string& solutionFile, const std::string& instanceFile) 
     {
         try
         {
@@ -87,21 +93,45 @@ class SolutionLoader
             std::vector<char> buffer;
             f.read(buffer, f.getFileSize());
            
-            std::string data{buffer.begin(), buffer.end()} 
+            std::string data{buffer.begin(), buffer.end()};
             
             auto start = 0;
             auto end = data.find(delim);
-            bool foundName = false; 
-            std::string instanceName{};
             
-            while(end != std::string::npos && !foundName)
+            CVRPSolution::DataType routes;
+            double solutionTime = -1.0;
+            
+            CVRPInstance instance = *InstanceLoader().loadInstance(instanceFile);
+            
+            while(end != std::string::npos)
             {
-                auto current = data.substr(start, end);
-                if(Utils::is_prefix("NAME", current))
+                auto current = data.substr(start, end - start);
+                if(Utils::is_prefix("Route", current))
                 {
-                    auto startOfName = current.find(":");
-                    instanceName = Utils::trim(current.substr(0, startOfName));
-                    foundName = true;
+                    routes.push_back({});
+                    auto startOfExpr = current.find(":");
+                    std::string routeStr = current.substr(startOfExpr, current.length() - 1 - startOfExpr);
+                    Utils::trim(routeStr);
+                    
+                    auto currentIt = 0;
+                    auto nextIt = routeStr.find(' ');
+                    
+                    while(nextIt != std::string::npos)
+                    {
+                        std::string routeNode = routeStr.substr(currentIt, nextIt - currentIt);
+                        Utils::rtrim(routeNode);
+                        routes.back().push_back(instance.getNode(std::stol(routeNode)));
+                        currentIt = nextIt + 1;
+                        nextIt = routeStr.find(' ');
+                    }
+                }
+                
+                if(Utils::is_prefix("Time", current))
+                {
+                    auto startOfExpr = current.find(":");
+                    std::string timeStr = current.substr(startOfExpr, current.length() - 1 - startOfExpr);
+                    Utils::rtrim(timeStr);
+                    solutionTime = std::stod(timeStr); 
                 }
                 
                 start = end + 1;
@@ -110,19 +140,12 @@ class SolutionLoader
             
             auto endPath = solutionFile.find(f.path_separator);
             
-            if(endPath == std::string::npos)
-            {
-                return loadSolution(solutionFile, instanceName);
-            }
-            else
-            {
-                return loadSolution(solutionFile, solutionFile.substr(0, endPath) + instanceName + ".vrp");
-            }
+            return {CVRPSolution{instance, routes}};
         }
         catch(const std::ifstream::failure& e)
         {
             std::cout << "Stream exception while trying to load the instance '" 
-                      << filename 
+                      << solutionFile 
                       << "' : " 
                       << e.what() 
                       << std::endl;
@@ -130,7 +153,7 @@ class SolutionLoader
         catch(const std::invalid_argument& e)
         {
             std::cout << "Argument exception while trying to load the instance '"
-                      << filename
+                      << solutionFile
                       << "' : "
                       << e.what()
                       << std::endl;

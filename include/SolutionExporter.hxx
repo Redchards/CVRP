@@ -24,6 +24,11 @@ class SolutionExporter
     SolutionExporter& operator=(const SolutionExporter&) = default;;
     SolutionExporter& operator=(SolutionExporter&&) = default;
     
+    void exportSolution(const CVRPSolution& solution, const std::string& filename) const
+    {
+        return exportSolution(solution, -1.0, filename);
+    }
+    
     void exportSolution(const CVRPSolution& solution, double solutionTime, const std::string& filename) const
     {
         FileStreamBase<StreamGoal::write> stream(filename, std::ios_base::in);

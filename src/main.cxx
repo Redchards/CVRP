@@ -8,6 +8,7 @@
 #include <SolutionExporter.hxx>
 #include <MtzCVRPSolver.hxx>
 #include <SweepRouteAffectationSolver.hxx>
+#include <SolutionLoader.hxx>
 
 #include <iostream>
 #include <lemon/list_graph.h>
@@ -123,6 +124,10 @@ int main()
     
     using FirstSolver = Solver::RouteAffectationBinPackingAdaptor<Solver::BinPackingMIPSolver>;
     Solver::TwoStepsCVRPSolver<FirstSolver, Solver::TwoOptTSPSolver> solver4({inst}, {});
+    auto sol4 = solver4.solve(inst);
+    SolutionExporter solExporter{};
+    solExporter.exportSolutionGraph(sol4, "testSol.jpg");
+    solExporter.exportSolution(sol4, "testSol.sol");
     
     /*Solver::MtzCVRPSolver solver5;
     
@@ -160,11 +165,12 @@ int main()
     {
         for(auto& node : route)
         {
-            std::cout << inst.idOf(node);
+            std::cout << inst.idOf(node) << " ";
         }
         std::cout << std::endl;
     }
 
+    Solver::TwoStepsCVRPSolver<Solver::SweepRouteAffectationSolver, Solver::TwoOptTSPSolver> solver6({inst}, {});
     
     return 0;
 }
