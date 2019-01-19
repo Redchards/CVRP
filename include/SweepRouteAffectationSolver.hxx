@@ -46,18 +46,20 @@ class SweepRouteAffectationSolver : public GenericRouteAffectationSolver<SweepRo
         while(!nodes.empty())
         {
 
-            float min = 360;
+            float min = 5000;
             RouteAffectationResult::NodeType n;
             
             for(RouteAffectationResult::NodeType node : nodes)
             {
-                // calcul du radian
-                float a = sqrt(pow(instance.getCoordinatesOf(referenceNode).x - instance.getCoordinatesOf(node).x, 2) + pow(instance.getCoordinatesOf(referenceNode).y - instance.getCoordinatesOf(node).y, 2));
-                float b = sqrt(pow(instance.getCoordinatesOf(referenceNode).x - instance.getCoordinatesOf(depot).x, 2) + pow(instance.getCoordinatesOf(referenceNode).y - instance.getCoordinatesOf(depot).y, 2));
-                float c = sqrt(pow(instance.getCoordinatesOf(depot).x - instance.getCoordinatesOf(node).x, 2) + pow(instance.getCoordinatesOf(depot).y - instance.getCoordinatesOf(node).y, 2));
+                float x1 = instance.getCoordinatesOf(referenceNode).x - instance.getCoordinatesOf(depot).x;
+                float x2 = instance.getCoordinatesOf(referenceNode).y - instance.getCoordinatesOf(depot).y;
+                float y1 = instance.getCoordinatesOf(node).x - instance.getCoordinatesOf(depot).x;
+                float y2 = instance.getCoordinatesOf(node).y - instance.getCoordinatesOf(depot).y;
                 
-                float radian = acos((pow(a, 2) - pow(b, 2) - pow(c, 2)) / (2 * b * c));
-                int angle = ((int) radian * 180 / PI) % 360 ;
+                float theta1 = 2 * atan(y1/ (x1 + sqrt(pow(x1, 2) + pow(y1, 2)))) / M_PI;
+                float theta2 = 2 * atan(y2/ (x2 + sqrt(pow(x2, 2) + pow(y2, 2)))) / M_PI;
+                float radian = theta2 - theta2;
+
                 if (min >= radian)
                 {
                     min = radian;
@@ -96,8 +98,11 @@ class SweepRouteAffectationSolver : public GenericRouteAffectationSolver<SweepRo
                 }
             }
         }
-        //
-
+        
+        
+        // We have find a solution
+        // We need to test if it is possible and modify it in the case of not
+        
         return {affectation, true, this->parameters_}; // Some modif to do
     }
     

@@ -13,22 +13,35 @@ namespace Solver
 {
     
 template<class BaseSolver, class ... Neighbourhoods>
-class StochasticDescentCVRPSolver : public GenericCVRPSolver<StochasticDescentCVRPSolver<BaseSolver, Neighbourhoods>>
+class StochasticDescentCVRPSolver : public GenericCVRPSolver<StochasticDescentCVRPSolver<BaseSolver, Neighbourhoods...>>
 {
     private:
     using NeighbourhoodTupleType = std::tuple<Neighbourhoods...>;
+    using CVRPInstance = Data::CVRPInstance;
     
     template<class T, size_t first, size_t ... next>
-    static auto dynamic_get_impl(const T& container, size_t index)
+    struct dynamic_get_impl
     {
-        if(first == index) return std::get<first>(container);
-        else return dynamic_get_impl<T, next...>(container, index);
-    }
+        auto get(const T& container, size_t index)
+        {
+            if(first == index) return std::get<first>(container);
+            else return dynamic_get_impl<T, next...>{}.get(container, index);
+        }
+    };
+    
+    template<class T, size_t last>
+    struct dynamic_get_impl<T, last>
+    {
+        auto get(const T& container, size_t)
+        {
+            return std::get<last>(container);
+        }
+    };
     
     template<class T, size_t ... indices>
-    static auto dynamic_get_aux(const T&, container, size_t index, std::index_sequence<indices...>)
+    static auto dynamic_get_aux(const T& container, size_t index, std::index_sequence<indices...>)
     {
-        return dynamic_get_impl(container, index);
+        return dynamic_get_impl<T, indices...>{}.get(container, index);
     }
     
     template<class T>
@@ -47,24 +60,47 @@ class StochasticDescentCVRPSolver : public GenericCVRPSolver<StochasticDescentCV
     
     CVRPSolution solve(const CVRPInstance& instance)
     {
-        constexpr numberOfNeighbourhoods = std::tuple_size<NeighbourhoodTupleType>::value;
+        constexpr auto numberOfNeighbourhoods = std::tuple_size<NeighbourhoodTupleType>::value;
         
-        std::random_engine en;
-        std::default_random_engine randomEngine(en);
+        std::random_device en;
+        std::mt19937 randomEngine(en());
         std::uniform_int_distribution<unsigned int> distrib(0, numberOfNeighbourhoods - 1);
         
         auto origSol = baseSolver_.solve(instance);
+        CVRPSolution::CostProcessor costProcessor;
+        auto bestSolData = origSol.getData();
+        std::cout << costProcessor.computeCost(instance, bestSolData) << std::endl;
         
         for(size_t i = 0; i < steps_; ++i)
         {
-            auto newSol =  dynamic_get(neighbourhoods_, distrib(randomEngine)).randomNeighbour();
+            auto newSolData = dynamic_get(neighbourhoods_, distrib(randomEngine)).randomNeighbour(bestSolData);
+            if(costProcessor.computeCost(instance, newSolData) < costProcessor.computeCost(instance, bestSolData))
+            {
+                bestSolData = newSolData;
+                std::cout << "FOUND ! " << std::endl;
+            }
         }
+        
+        std::cout << "Done" << std::endl;
+        CVRPSolutionCostProcessor<1000000> finalCostProcessor;
+        std::cout << finalCostProcessor.satisfiesConstraints(instance, bestSolData) << std::endl;
+        /*while(!finalCostProcessor.satisfiesConstraints(instance, bestSolData))
+        {
+            auto newSolData = dynamic_get(neighbourhoods_, distrib(randomEngine)).randomNeighbour(bestSolData);
+            if(costProcessor.computeCost(instance, newSolData) < costProcessor.computeCost(instance, bestSolData))
+            {
+                bestSolData = newSolData;
+                std::cout << "FOUND ! " << std::endl;
+            }
+        }*/
+        
+        return {instance, bestSolData};
     }
     
     private:
-    const BaseSolver baseSolver_;
-    const NeighbourhoodTupleType neighbourhoods_;
+    BaseSolver baseSolver_;
     size_t steps_;
+    const NeighbourhoodTupleType neighbourhoods_;
 };
 
 }

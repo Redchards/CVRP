@@ -27,7 +27,6 @@ class InstanceLoader
                      [](Coordinates p1, Coordinates p2){
                         auto x = p2.x - p1.x;
                         auto y = p2.y - p1.y;
-                        std::cout << x << " : " << y << std::endl;
                         return std::sqrt(x*x + y*y);
                      }}}
     {}
@@ -164,12 +163,7 @@ class InstanceLoader
         
         return {};
     }
-    
-    bool is_number(const std::string &s) 
-    {
-        return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
-    }
-    
+   
     std::tuple<size_t, Coordinates> parseCoordinates(const std::string& data)
     {
         std::cout << data << std::endl;

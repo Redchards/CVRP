@@ -7,6 +7,86 @@
 
 namespace Solver
 {
+    
+class CVRPSolution; 
+
+using CVRPSolutionData = std::vector<std::vector<Data::CVRPInstance::GraphType::Node>>;
+    
+template<size_t wrongCapacityPenalty>
+class CVRPSolutionCostProcessor
+{
+    public:
+    
+    double computeCost(const Data::CVRPInstance& instance, const CVRPSolutionData& data) const noexcept
+    {
+        double totalCost = 0.0;
+       
+        for(const auto& route : data) 
+        {
+            size_t currentDemand = 0; 
+           
+            auto current = route.begin();
+            auto next = current + 1; 
+            
+            if(current == route.end())
+            {
+                continue;
+            }
+            
+            totalCost += instance.getCostOf(instance.getDepotNode(), *current);
+            
+            for(; next != route.end(); ++current, ++next)
+            {
+                totalCost += instance.getCostOf(*current, *next);
+                currentDemand += instance.getDemandOf(*current);
+            }
+            
+            currentDemand += instance.getDemandOf(*current);
+            
+            totalCost += instance.getCostOf(*current, instance.getDepotNode());
+            
+            if(currentDemand > instance.getVehicleCapacity())
+            {
+                totalCost += (currentDemand - instance.getVehicleCapacity()) * wrongCapacityPenalty;
+            }   
+            
+            /* std::cout << currentDemand << std::endl;
+            size_t actual = 0;
+            for(auto node : route)
+            {
+                std::cout << instance.idOf(node) << " ";
+                actual += instance.getDemandOf(node);
+            }
+            std::cout << std::endl << actual << std::endl; */
+        }
+        
+        return totalCost;
+    }
+ 
+    bool satisfiesConstraints(const Data::CVRPInstance& instance, const CVRPSolutionData& data) const noexcept
+    {
+        if(data.size() > instance.getNumberOfVehicles())
+        {
+            return false;
+        }
+        
+        for(const auto& route : data)
+        {
+            size_t currentDemand = 0;
+            for(const auto& node : route)
+            {
+                currentDemand += instance.getDemandOf(node);
+                
+                if(currentDemand > instance.getVehicleCapacity())
+                {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+};
 
 class CVRPSolution
 {
@@ -15,7 +95,7 @@ class CVRPSolution
     using CVRPInstance = Data::CVRPInstance;
     
     public:
-    using DataType = std::vector<std::vector<GraphType::Node>>;
+    using DataType = CVRPSolutionData; 
     
     public:
     CVRPSolution(const CVRPInstance& instance, const DataType& data)
@@ -33,41 +113,20 @@ class CVRPSolution
     const DataType& getData() const noexcept { return data_; }
     size_t getNumberOfRoutes() const noexcept { return data_.size(); }
     
-    double computeCost() const noexcept
+    const std::vector<GraphType::Node>& getRoute(size_t idx) const
     {
-        double totalCost = 0.0;
-       
-        for(const auto& route : data_) 
+        if(idx >= data_.size())
         {
-            size_t currentDemand = 0; 
-           
-            auto current = route.begin();
-            auto next = current + 1; 
-            
-            if(current == route.end())
-            {
-                continue;
-            }
-            
-            totalCost += instance_.getCostOf(instance_.getDepotNode(), *current);
-            currentDemand += instance_.getDemandOf(*current);
-            
-            for(; next != route.end(); ++current, ++next)
-            {
-                totalCost += instance_.getCostOf(*current, *next);
-                currentDemand += instance_.getDemandOf(*current);
-            }
-            
-            totalCost += instance_.getCostOf(*current, instance_.getDepotNode());
-            
-            if(currentDemand > instance_.getVehicleCapacity())
-            {
-                totalCost += (currentDemand - instance_.getVehicleCapacity()) * wrongCapacityPenalty_;
-            }
+            throw std::out_of_range(std::string{"Trying to access an out of range affectation ! Index : "} + std::to_string(idx));
         }
         
-        return totalCost;
+        return data_[idx];
     }
+    
+    double computeCost() const noexcept
+    {
+        return costProcessor_.computeCost(instance_, data_);
+    } 
     
     auto begin() const noexcept { return data_.begin(); }
     auto end() const noexcept { return data_.end(); }
@@ -80,10 +139,16 @@ class CVRPSolution
     auto crend() const noexcept { return data_.crend(); }
     
     private:
-    const CVRPInstance& instance_;
+    const CVRPInstance instance_;
     DataType data_;
     
-    static constexpr double wrongCapacityPenalty_ = 100.0;
+    static constexpr size_t wrongCapacityPenalty_ = 1000;
+    
+    public:
+    using CostProcessor = CVRPSolutionCostProcessor<wrongCapacityPenalty_>;
+    
+    private:
+    CVRPSolutionCostProcessor<wrongCapacityPenalty_> costProcessor_;
 };
 
 }

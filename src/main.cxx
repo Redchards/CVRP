@@ -9,6 +9,8 @@
 #include <MtzCVRPSolver.hxx>
 #include <SweepRouteAffectationSolver.hxx>
 #include <SolutionLoader.hxx>
+#include <StochasticDescentCVRPSolver.hxx>
+#include <OnePointExtraNeighbourhood.hxx>
 
 #include <iostream>
 #include <lemon/list_graph.h>
@@ -111,7 +113,7 @@ int main()
     std::cout << Coordinates() << std::endl;
     
     InstanceLoader loader{};
-    auto inst = *loader.loadInstance("instances/P/P-n19-k2.vrp");
+    auto inst = *loader.loadInstance("instances/A/A-n32-k5.vrp");
     std::cout << inst.getCoordinatesOf(inst.getNode(5)) << " : " << inst.getCoordinatesOf(inst.getNode(8)) << std::endl;
     
     size_t iddd = 0;
@@ -122,12 +124,20 @@ int main()
         std::cout << inst.idOf(n) << " : " << inst.getCoordinatesOf(n) << " : " << inst.getDemandOf(n) << std::endl;
     }
     
-    using FirstSolver = Solver::RouteAffectationBinPackingAdaptor<Solver::BinPackingMIPSolver>;
+    // using FirstSolver = Solver::RouteAffectationBinPackingAdaptor<Solver::BinPackingMIPSolver>;
+    using FirstSolver = Solver::SweepRouteAffectationSolver;
     Solver::TwoStepsCVRPSolver<FirstSolver, Solver::TwoOptTSPSolver> solver4({inst}, {});
+    Solver::StochasticDescentCVRPSolver<Solver::TwoStepsCVRPSolver<FirstSolver, Solver::TwoOptTSPSolver>, Heuristic::OnePointExtraNeighbourhood> stochSolv{solver4, 100000};
     auto sol4 = solver4.solve(inst);
+    std::cout << sol4.computeCost() << std::endl;
+    //auto sol5 = stochSolv.solve(inst);
     SolutionExporter solExporter{};
     solExporter.exportSolutionGraph(sol4, "testSol.jpg");
     solExporter.exportSolution(sol4, "testSol.sol");
+    //solExporter.exportSolutionGraph(sol5, "testSol2.jpg");
+    //SolutionLoader solLoader{};
+    //auto solLoaded = solLoader.loadSolution("testSol.sol", "instances/P/P-n19-k2.vrp");
+    //solExporter.exportSolutionGraph(*solLoaded, "testSol2.jpg");
     
     /*Solver::MtzCVRPSolver solver5;
     
@@ -159,7 +169,7 @@ int main()
             std::cout << x << std::endl;
     }*/
     
-    Solver::SweepRouteAffectationSolver sweepSolver{{inst}};
+    /*Solver::SweepRouteAffectationSolver sweepSolver{{inst}};
     
     for(auto& route : sweepSolver.solve(inst))
     {
@@ -170,7 +180,7 @@ int main()
         std::cout << std::endl;
     }
 
-    Solver::TwoStepsCVRPSolver<Solver::SweepRouteAffectationSolver, Solver::TwoOptTSPSolver> solver6({inst}, {});
+    Solver::TwoStepsCVRPSolver<Solver::SweepRouteAffectationSolver, Solver::TwoOptTSPSolver> solver6({inst}, {});*/
     
     return 0;
 }

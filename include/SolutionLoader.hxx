@@ -42,7 +42,7 @@ class SolutionLoader
                 auto current = data.substr(start, end - start);
                 if(Utils::is_prefix("NAME", current))
                 {
-                    auto startOfName = current.find(":");
+                    auto startOfName = current.find(":") + 1;
                     auto instanceName = current.substr(startOfName, current.length() -  1 - startOfName);
                     Utils::trim(instanceName);
                     foundName = true;
@@ -109,26 +109,29 @@ class SolutionLoader
                 if(Utils::is_prefix("Route", current))
                 {
                     routes.push_back({});
-                    auto startOfExpr = current.find(":");
+                    auto startOfExpr = current.find(":") + 1;
                     std::string routeStr = current.substr(startOfExpr, current.length() - 1 - startOfExpr);
                     Utils::trim(routeStr);
                     
                     auto currentIt = 0;
                     auto nextIt = routeStr.find(' ');
+                    auto oldNext = nextIt;
                     
-                    while(nextIt != std::string::npos)
+                    while(oldNext != std::string::npos)
                     {
                         std::string routeNode = routeStr.substr(currentIt, nextIt - currentIt);
                         Utils::rtrim(routeNode);
+                        std::cout << routeNode << std::endl;
                         routes.back().push_back(instance.getNode(std::stol(routeNode)));
                         currentIt = nextIt + 1;
-                        nextIt = routeStr.find(' ');
+                        oldNext = nextIt;
+                        nextIt = routeStr.find(' ', currentIt);
                     }
                 }
                 
                 if(Utils::is_prefix("Time", current))
                 {
-                    auto startOfExpr = current.find(":");
+                    auto startOfExpr = current.find(":") + 1;
                     std::string timeStr = current.substr(startOfExpr, current.length() - 1 - startOfExpr);
                     Utils::rtrim(timeStr);
                     solutionTime = std::stod(timeStr); 
@@ -138,8 +141,7 @@ class SolutionLoader
                 end = data.find(delim, end + 1);
             }
             
-            auto endPath = solutionFile.find(f.path_separator);
-            
+            std::cout << instance.getName() << std::endl;
             return {CVRPSolution{instance, routes}};
         }
         catch(const std::ifstream::failure& e)
@@ -154,6 +156,14 @@ class SolutionLoader
         {
             std::cout << "Argument exception while trying to load the instance '"
                       << solutionFile
+                      << "' : "
+                      << e.what()
+                      << std::endl;
+        }
+        catch(const std::logic_error& e)
+        {
+            std::cout << "Can't load the given instance attached to the solution '"
+                      << instanceFile
                       << "' : "
                       << e.what()
                       << std::endl;

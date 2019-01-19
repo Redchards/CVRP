@@ -86,6 +86,7 @@ class CVRPInstance
         initializeCostMap(costFunction_);
     }
     
+    
     /*CVRPInstance(CVRPInstance&& other)
     : graph_{std::move(other.graph_)},
       name_{std::move(other.name_)},
@@ -225,10 +226,6 @@ class CVRPInstance
             {
                 if(n1 != n2)
                 {
-                    if(graph_.id(n1) == 5 and graph_.id(n2) == 8)
-                    {
-                        std::cout << coordinatesMap_[n1] << " : " << coordinatesMap_[n2] << " : " << costFunction(coordinatesMap_[n1], coordinatesMap_[n2]) << std::endl;
-                    }
                     costMap_.set(graph_.edge(n1, n2), costFunction(coordinatesMap_[n1], coordinatesMap_[n2]));
                 }
             }

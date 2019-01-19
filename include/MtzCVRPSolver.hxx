@@ -193,7 +193,6 @@ class MtzCVRPSolver : GenericCVRPSolver<MtzCVRPSolver>
                 //std::cout << routeId << std::endl;
                 size_t i = 0;
                 offsetUpdated = false;
-                auto origOffset = offset;
                 for(size_t j = offset; j < instance.getNumberOfNodes(); ++j)
                 {
                     if(i == j) continue;

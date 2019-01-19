@@ -54,7 +54,7 @@ class LemonTSPSolverAdaptor : GenericTSPSolver<LemonTSPSolverAdaptor<Solver>>
     {
         Solver solver(graph, costMap);
         solver.run();
-        std::cout << solver.tourCost() << std::endl;
+        // std::cout << solver.tourCost() << std::endl;
         
         return solver.tourNodes();
     }

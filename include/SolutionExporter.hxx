@@ -31,12 +31,12 @@ class SolutionExporter
     
     void exportSolution(const CVRPSolution& solution, double solutionTime, const std::string& filename) const
     {
-        FileStreamBase<StreamGoal::write> stream(filename, std::ios_base::in);
+        FileStreamBase<StreamGoal::write> stream(filename, std::ios_base::out);
         std::string res;
         
         size_t idx = 0;
         
-        res += std::string{"Name : "} + solution.getOriginalInstance().getName();
+        res += std::string{"Name : "} + solution.getOriginalInstance().getName() + "\n";
         for(const auto& route : solution)
         {
             idx++;
@@ -116,7 +116,6 @@ class SolutionExporter
         }
         
         plotCommand += graphData + "\n\')\"";
-        std::cout << plotCommand << std::endl;
         system(plotCommand.c_str());
         
     }
