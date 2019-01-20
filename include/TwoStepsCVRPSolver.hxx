@@ -35,8 +35,6 @@ class TwoStepsCVRPSolver : public GenericCVRPSolver<TwoStepsCVRPSolver<FirstPass
         
         for(const auto& route : firstPassResult)
         {
-            size_t capa = 0;
-            
             GraphType::NodeMap<bool> nodeFilter(instance.getUnderlyingGraph(), true);
             
             for(const auto& node : route)

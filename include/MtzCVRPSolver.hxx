@@ -1,6 +1,7 @@
 #ifndef MTZ_CVRP_SOLVER_HXX
 #define MTZ_CVRP_SOLVER_HXX
 
+#include <cstdint>
 #include <numeric>
 #include <string>
 #include <vector>
@@ -37,6 +38,30 @@ ILOUSERCUTCALLBACK2(UserCutMtzCVRPSeparation, const Data::CVRPInstance&, instanc
     }
 }
 
+ILOHEURISTICCALLBACK2(MtzPrimalHeuristicCallback, const Data::CVRPInstance&, instance, const std::vector<IloBoolVar>&, arcVarArray)
+{
+    std::vector<double> arcValueArray(arcVarArray.size());
+    const auto& graph = instance.getUnderlyingGraph();
+    
+    IloIntVarArray newVars(getEnv());
+    for(const auto& var : arcVarArray)
+    {
+        newVars.add(var);
+    }
+    
+    for(auto edge = instance.getEdgeIt(); edge != lemon::INVALID; ++edge)
+    {
+        size_t id1 = instance.idOf(graph.u(edge));
+        size_t id2 = instance.idOf(graph.v(edge));
+        
+        arcValueArray[id1 * instance.getNumberOfNodes() + id2 - 1] = getValue(arcVarArray[id1 * instance.getNumberOfNodes() + id2 - 1]);
+        arcValueArray[id2 * instance.getNumberOfNodes() + id1 - 1] = getValue(arcVarArray[id2 * instance.getNumberOfNodes() + id1 - 1]);
+    }
+    
+    IloNumArray newSol = CutHelper::MtzPrimalHeuristic(getEnv(), instance, arcVarArray, arcValueArray);
+    setSolution(newVars, newSol);
+}
+
 namespace Solver
 {
     
@@ -48,7 +73,7 @@ class MtzCVRPSolver : GenericCVRPSolver<MtzCVRPSolver>
     public:
     using GenericCVRPSolver<MtzCVRPSolver>::GenericCVRPSolver;
     
-    CVRPSolution solve(const CVRPInstance& instance)
+    CVRPSolution solve(const CVRPInstance& instance, optional<const CVRPSolution&> initialSolution = {})
     {
         IloEnv env;
         
@@ -153,13 +178,67 @@ class MtzCVRPSolver : GenericCVRPSolver<MtzCVRPSolver>
             model.add(depotConstraints);
             model.add(consistencyConstraints);
             model.add(mtzConstraints1);
+            
+            for(size_t i = 1; i < instance.getNumberOfNodes(); ++i)
+            {
+                model.add(arcVarArray[i * instance.getNumberOfNodes() + i - 1] >= 0);
+            }
             //model.add(mtzConstraints2);
             
             IloCplex cplex(model);
             
             cplex.add(UserCutMtzCVRPSeparation(env, instance, arcVarArray));
+            cplex.add(MtzPrimalHeuristicCallback(env, instance, arcVarArray));
             
+             // cplex.setParam(IloCplex::Param::MIP::Tolerances::AbsMIPGap, 330.0);
+            
+            IloNumArray startingValues(env);
+            IloNumVarArray startingVar(env);
+            
+            for(const auto& var : arcVarArray)
+            {
+                startingVar.add(var);
+                startingValues.add(0);
+            }
+            
+            if(initialSolution)
+            {
+                for(const auto& route : *initialSolution)
+                {
+                    auto current = route.begin();
+                    auto next = current + 1; 
+                    
+                    if(current == route.end())
+                    {
+                        continue;
+                    }
+                    
+                    auto currentId = instance.idOfDepot() * instance.getNumberOfNodes() + instance.idOf(*current) - 1;
+                    std::cout << "Hi " << arcVarArray.size() << " : " << startingVar.getSize() << " : " << currentId << std::endl;
+                    startingValues[currentId] = 1;
+                    
+                    for(; next != route.end(); ++current, ++next)
+                    {
+                        auto id1 = instance.idOf(*current);
+                        auto id2 = instance.idOf(*next);
+                        currentId = id1 * instance.getNumberOfNodes() + id2 - 1;
+                        
+                        std::cout << currentId << std::endl;
+                        startingValues[currentId] = 1;
+                    }
+                   
+                    currentId = instance.idOf(*current) * instance.getNumberOfNodes() + instance.idOfDepot() - 1;
+                        std::cout << currentId << std::endl;
+                    startingValues[currentId] = 1;
+                }
+            }
+            
+           
             cplex.exportModel("sortie.lp");
+            cplex.addMIPStart(startingVar, startingValues, IloCplex::MIPStartCheckFeas);
+            startingVar.end();
+            startingValues.end();
+            
             std::cout << "Model built ... Ready to solve" << std::endl;
             if (!cplex.solve()) {
                 env.error() << "Failed to optimize LP" << std::endl;

@@ -73,11 +73,12 @@ class StochasticDescentCVRPSolver : public GenericCVRPSolver<StochasticDescentCV
         
         for(size_t i = 0; i < steps_; ++i)
         {
+            if(i%10000 == 0)
+            {std::cout << i << std::endl;}
             auto newSolData = dynamic_get(neighbourhoods_, distrib(randomEngine)).randomNeighbour(bestSolData);
             if(costProcessor.computeCost(instance, newSolData) < costProcessor.computeCost(instance, bestSolData))
             {
                 bestSolData = newSolData;
-                std::cout << "FOUND ! " << std::endl;
             }
         }
         

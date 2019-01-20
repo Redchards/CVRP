@@ -113,7 +113,7 @@ int main()
     std::cout << Coordinates() << std::endl;
     
     InstanceLoader loader{};
-    auto inst = *loader.loadInstance("instances/A/A-n32-k5.vrp");
+    auto inst = *loader.loadInstance("instances/P/P-n22-k2.vrp");
     std::cout << inst.getCoordinatesOf(inst.getNode(5)) << " : " << inst.getCoordinatesOf(inst.getNode(8)) << std::endl;
     
     size_t iddd = 0;
@@ -124,17 +124,20 @@ int main()
         std::cout << inst.idOf(n) << " : " << inst.getCoordinatesOf(n) << " : " << inst.getDemandOf(n) << std::endl;
     }
     
-    // using FirstSolver = Solver::RouteAffectationBinPackingAdaptor<Solver::BinPackingMIPSolver>;
-    using FirstSolver = Solver::SweepRouteAffectationSolver;
+    using FirstSolver = Solver::RouteAffectationBinPackingAdaptor<Solver::BinPackingMIPSolver>;
+    //using FirstSolver = Solver::SweepRouteAffectationSolver;
     Solver::TwoStepsCVRPSolver<FirstSolver, Solver::TwoOptTSPSolver> solver4({inst}, {});
-    Solver::StochasticDescentCVRPSolver<Solver::TwoStepsCVRPSolver<FirstSolver, Solver::TwoOptTSPSolver>, Heuristic::OnePointExtraNeighbourhood> stochSolv{solver4, 100000};
+    Solver::StochasticDescentCVRPSolver<Solver::TwoStepsCVRPSolver<FirstSolver, Solver::TwoOptTSPSolver>, Heuristic::OnePointExtraNeighbourhood> stochSolv{solver4, 10000};
     auto sol4 = solver4.solve(inst);
     std::cout << sol4.computeCost() << std::endl;
-    //auto sol5 = stochSolv.solve(inst);
+    auto sol5 = stochSolv.solve(inst);
+    std::cout << "sol : " << sol5.computeCost() << std::endl;
+    Solver::MtzCVRPSolver mtzSolver{};
+    auto sol6 = mtzSolver.solve(inst, sol5);
     SolutionExporter solExporter{};
     solExporter.exportSolutionGraph(sol4, "testSol.jpg");
-    solExporter.exportSolution(sol4, "testSol.sol");
-    //solExporter.exportSolutionGraph(sol5, "testSol2.jpg");
+    solExporter.exportSolution(sol6, "solutions/P-n22-k2.sol");
+    solExporter.exportSolutionGraph(sol6, "solutions/PlotP-n22-k2.jpg");
     //SolutionLoader solLoader{};
     //auto solLoaded = solLoader.loadSolution("testSol.sol", "instances/P/P-n19-k2.vrp");
     //solExporter.exportSolutionGraph(*solLoaded, "testSol2.jpg");

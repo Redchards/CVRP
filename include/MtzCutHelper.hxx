@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 #include <CVRPInstance.hxx>
 #include <Optional.hxx>
@@ -24,7 +25,7 @@ optional<IloRange> MtzSymmetricUserCut(const IloEnv& env, const Data::CVRPInstan
     using NodeMap = GraphType::NodeMap<bool>;
     
     static constexpr double REGULARIZATION_FACTOR = 1000.0;
-    static constexpr double epsilon = 0.01;
+    static constexpr double epsilon = 0.00001;
     static constexpr size_t cutThreshold = 1;
     
     const GraphType& graph = instance.getUnderlyingGraph();
@@ -132,6 +133,74 @@ optional<IloRange> MtzAssymmetricUserCut(const IloEnv& env, const Data::CVRPInst
     }
     
     return {};
+}
+
+IloNumArray MtzPrimalHeuristic(const IloEnv& env, const Data::CVRPInstance& instance, const std::vector<IloBoolVar>& arcVarArray, const std::vector<double>& arcValueArray)
+{
+    IloNumArray resArray(env, arcVarArray.size());
+    size_t offset = 1;
+    bool offsetUpdated = false;
+    for(size_t routeId = 0; routeId < instance.getNumberOfVehicles(); ++routeId)
+    {
+        //std::cout << routeId << std::endl;
+        size_t i = 0;
+        size_t currentBestVal = 0;
+        size_t currentBestNode = 0;       
+        size_t currentDemand = 0;
+        offsetUpdated = false;
+            
+        bool done = false;
+        while(!done)
+        {
+            if(offset >= instance.getNumberOfVehicles())
+            {
+                break;
+            }
+            
+            for(size_t j = offset; j < instance.getNumberOfNodes(); ++j)
+            {
+                if(i == j) continue;
+                
+                auto currentVal = arcValueArray[i * instance.getNumberOfNodes() + j - 1];
+                
+                // std::cout << instance.getVehicleCapacity() << " : " << currentDemand << std::endl;
+                if(currentDemand > instance.getVehicleCapacity())
+                {
+                    //std::cout << "True" << std::endl;
+                    resArray[i * instance.getNumberOfNodes() - 1] = 1;
+                    done = true;
+                    break;
+                }
+                
+                if(currentVal > currentBestVal)
+                {
+                    currentBestVal = currentVal;
+                    currentBestNode = j;
+                }
+            }                
+            
+            if(i == 0 && currentBestNode == 0)
+            {
+                currentBestNode = 1;
+            }
+            
+            if(!done)
+            {
+                resArray[i * instance.getNumberOfNodes() + currentBestNode - 1] = 1;
+                currentDemand += instance.getDemandOf(instance.getNode(currentBestNode));
+                i = currentBestNode;
+            }
+            
+            if(!offsetUpdated) 
+            {
+                offset = currentBestNode + 1;
+            }
+        }
+ 
+    }
+    
+    return resArray;
+    
 }
     
 }
