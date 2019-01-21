@@ -11,6 +11,7 @@
 
 #include <Coordinates.hxx>
 #include <CVRPInstance.hxx>
+#include <TVRPInstance.hxx>
 #include <FileStream.hxx>
 #include <StringUtils.hxx>
 #include <Optional.hxx>
@@ -19,7 +20,9 @@ class InstanceLoader
 {
     private:
     using CVRPInstance = Data::CVRPInstance;
+    using TVRPInstance = Data::TVRPInstance;
     using VehicleData = Data::VehicleData;
+    using TechnicianData = Data::TechnicianData;
     
     public:
     InstanceLoader()
@@ -31,7 +34,7 @@ class InstanceLoader
                      }}}
     {}
     
-    optional<CVRPInstance> loadInstance(const std::string& filename)
+    optional<CVRPInstance> loadCVRPInstance(const std::string& filename)
     {
         try 
         {
@@ -143,6 +146,215 @@ class InstanceLoader
             std::cout << "Finish" << std::endl;
 
             return CVRPInstance{g, instanceName, VehicleData{vehicleNum, vehicleCapacity}, demandMap, coordinatesMap, costFunction};
+        }
+        catch(const std::ifstream::failure& e)
+        {
+            std::cout << "Stream exception while trying to load the instance '" 
+                      << filename 
+                      << "' : " 
+                      << e.what() 
+                      << std::endl;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            std::cout << "Argument exception while trying to load the instance '"
+                      << filename
+                      << "' : "
+                      << e.what()
+                      << std::endl;
+        }
+        
+        return {};
+    }
+    
+    optional<TVRPInstance> loadTVRPInstance(const std::string& filename)
+    {
+        try 
+        {
+            constexpr char delim = '\n';
+            FileStreamBase<StreamGoal::read> f(filename, std::ios_base::in);
+            std::vector<char> buffer;
+            std::cout << "File size : " << f.getFileSize() << std::endl;
+            f.read(buffer, f.getFileSize());
+            
+            const std::string data{buffer.begin(), buffer.end()};
+            std::cout << data << std::endl;
+            
+            size_t start = 0;
+            size_t end = data.find(delim);
+            
+            std::string instanceName;
+            bool inCoordSection = false;
+            bool inDemandSection = false;
+            bool inTechnicianSection = false;
+            bool inSkillSection = false;
+            bool preprocessingDone = false;
+            size_t graphSize;
+            
+            while(end != std::string::npos && !preprocessingDone)
+            {
+                auto current = data.substr(start, end - start);
+                Utils::trim(current);
+                
+                if(Utils::is_prefix("DIMENSION", current))
+                {
+                    graphSize = std::stoi(current.substr(12, current.length() - 12)); // HARD CODED, WRONG !!
+                    preprocessingDone = true;
+                }
+                
+                start = end + 1;
+                end = data.find(delim, end + 1);
+            }
+            std::cout << graphSize << std::endl;
+            start = 0;
+            end = data.find(delim);
+            
+            TVRPInstance::GraphType g(graphSize);
+            TVRPInstance::CoordinatesMap coordinatesMap{g};
+            TVRPInstance::DemandMap demandMap{g};
+            TVRPInstance::SkillMap skillMap{g};
+            
+            std::function<CVRPInstance::CostFunctionType> costFunction;
+            size_t vehicleNum = 0;
+            size_t vehicleCapacity = 0;
+            std::vector<std::vector<bool>> technicianData;
+            
+            while(end != std::string::npos)
+            {
+                auto current = data.substr(start, end - start);
+                Utils::trim(current);
+                
+                if(Utils::is_prefix("NODE_COORD_SECTION", current))
+                {
+                    inCoordSection = true;
+                    inDemandSection = false;
+                    inTechnicianSection = false;
+                    inSkillSection = false;
+                }
+                else if(Utils::is_prefix("DEMAND_SECTION", current))
+                {
+                    inDemandSection = true;
+                    inCoordSection = false;
+                    inTechnicianSection = false;
+                    inSkillSection = false;
+                }
+                else if(Utils::is_prefix("TECHNICIANS_SECTION", current))
+                {
+                    
+                    inDemandSection = false;
+                    inCoordSection = false;
+                    inTechnicianSection = true;
+                    inSkillSection = false;
+                }
+                else if(Utils::is_prefix("SKILL_SECTION", current))
+                {
+                    inDemandSection = false;
+                    inCoordSection = false;
+                    inTechnicianSection = false;
+                    inSkillSection = true; 
+                }
+                else if(Utils::is_prefix("DEPOT_SECTION", current))
+                {
+                    inDemandSection = false;
+                    inCoordSection = false;
+                    inTechnicianSection = false;
+                    inSkillSection = false;
+                }
+                else if(inCoordSection)
+                {
+                    auto parsedResult = parseCoordinates(current);
+                    coordinatesMap.set(g.nodeFromId(std::get<0>(parsedResult) - 1), std::get<1>(parsedResult));
+                }
+                else if(inDemandSection)
+                {
+                    auto parsedResult = parseDemand(current);
+                    std::cout << std::get<0>(parsedResult) << std::endl;
+                    demandMap.set(g.nodeFromId(std::get<0>(parsedResult) - 1), std::get<1>(parsedResult));
+                }
+                else if(inTechnicianSection)
+                {
+                    // std::cout << "Parsing technician data" << std::endl;
+                    auto pos = current.find(" ");
+                    std::string numberOfTechnicianStr = current.substr(0, pos);
+                    std::string skillsStr = current.substr(pos + 1, current.length() - (pos + 1));
+                    
+                    std::vector<bool> skillset;
+                    for(char c : skillsStr)
+                    {
+                        if(c == '1')
+                        {
+                            skillset.push_back(true);
+                        }
+                        else
+                        {
+                            skillset.push_back(false);
+                        }
+                    }
+                    
+                    for(size_t i = 0; i < std::stoul(numberOfTechnicianStr); ++i)
+                    {
+                        technicianData.push_back(skillset);
+                    }
+                }
+                else if(inSkillSection)
+                {
+                    // std::cout << "Parsing skill data" << std::endl;
+                    auto pos = current.find(" ");
+                    size_t nodeId = std::stol(current.substr(0, pos)) - 1;
+                    std::string skillsStr = current.substr(pos + 1, current.length() - (pos + 1));
+                    
+                    // std::cout << nodeId << "  " << skillsStr << std::endl;
+                    
+                    std::vector<bool> requiredSkillset;
+                    for(char c : skillsStr)
+                    {
+                        if(c == '1')
+                        {
+                            requiredSkillset.push_back(true);
+                        }
+                        else
+                        {
+                            requiredSkillset.push_back(false);
+                        }
+                    }
+                    
+                    skillMap[g(nodeId)] = requiredSkillset;
+                    // std::cout << "Done ! " << std::endl;
+                }
+                else if(Utils::is_prefix("NAME", current)) 
+                {
+                    auto pos = current.find(":") + 1;
+                    instanceName = current.substr(pos, current.length() - pos);
+                }
+                else if(Utils::is_prefix("EDGE_WEIGHT_TYPE", current))
+                {
+                    auto pos = current.find(":") + 1;
+                    std::cout << current.substr(pos, current.length() - pos) << std::endl;
+                    std::string type = current.substr(pos, current.length() - pos);
+                    Utils::trim(type);
+                    costFunction = costFunctions_.at(type);
+                }
+                else if(current.find("No of trucks") != std::string::npos)
+                {
+                    auto pos1 = current.find("No of trucks");
+                    auto pos2 = current.find(",", pos1);
+                    auto numStr = current.substr(pos1 + 13, pos2 - pos1 - 13);
+                    std::cout << numStr << std::endl;
+                    vehicleNum = std::stod(numStr);
+                }
+                else if(Utils::is_prefix("CAPACITY", current))
+                {
+                    auto pos = current.find(":") + 1;
+                    std::string numStr = current.substr(pos, current.length() - pos);
+                    vehicleCapacity = std::stod(numStr);
+                }
+                
+                start = end + 1;
+                end = data.find(delim, end + 1);
+            }
+            std::cout << "Finish" << std::endl;
+
+            return TVRPInstance{g, instanceName, VehicleData{vehicleNum, vehicleCapacity}, TechnicianData{technicianData}, demandMap, skillMap, coordinatesMap, costFunction};
         }
         catch(const std::ifstream::failure& e)
         {

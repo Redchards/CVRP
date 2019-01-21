@@ -138,7 +138,7 @@ class CVRPSolution
     auto crbegin() const noexcept { return data_.crbegin(); }
     auto crend() const noexcept { return data_.crend(); }
     
-    private:
+    protected:
     const CVRPInstance instance_;
     DataType data_;
     

@@ -232,7 +232,7 @@ class CVRPInstance
         }
     }
     
-    private:
+    protected:
     const GraphType graph_;
     std::string name_;
     VehicleData vehicleData_;

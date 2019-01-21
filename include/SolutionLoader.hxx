@@ -101,7 +101,7 @@ class SolutionLoader
             CVRPSolution::DataType routes;
             double solutionTime = -1.0;
             
-            CVRPInstance instance = *InstanceLoader().loadInstance(instanceFile);
+            CVRPInstance instance = *InstanceLoader().loadCVRPInstance(instanceFile);
             
             while(end != std::string::npos)
             {

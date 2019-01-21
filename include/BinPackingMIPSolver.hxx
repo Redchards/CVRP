@@ -95,10 +95,10 @@ class BinPackingMIPSolver : public GenericBinPackingSolver<BinPackingMIPSolver>
             env.out() << "Solution status = " << cplex.getStatus() << std::endl;
             env.out() << "Solution value  = " << cplex.getObjValue() << std::endl;
 
-            for(const auto& var : varArray)
+            /*for(const auto& var : varArray)
             {
                 std::cout << var << ": " << cplex.getValue(var) << std::endl;
-            }
+            }*/
             // TODO : put the number of bins used
             return {affectation, true, parameters_};
         }

@@ -4,6 +4,7 @@
 #include <CVRPInstance.hxx>
 #include <CVRPSolution.hxx>
 #include <Meta.hxx>
+#include <Optional.hxx>
 
 namespace Solver
 {
