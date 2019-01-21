@@ -70,8 +70,8 @@ optional<IloRange> MtzSymmetricUserCut(const IloEnv& env, const Data::CVRPInstan
                 expr += arcVarArray[id1 * instance.getNumberOfNodes() + id2 - 1];
             }
         }
-        
-        return expr >= 1; 
+       
+        return expr >= static_cast<IloInt>(cutThreshold);
     }
     
     return {};
@@ -84,8 +84,8 @@ optional<IloRange> MtzAssymmetricUserCut(const IloEnv& env, const Data::CVRPInst
     using CapacityMap = GraphType::ArcMap<int>;
     using NodeMap = GraphType::NodeMap<bool>;
     
-    static constexpr double REGULARIZATION_FACTOR = 1000.0;
-    static constexpr double epsilon = 0.01;
+    static constexpr double REGULARIZATION_FACTOR = 1000000.0;
+    static constexpr double epsilon = 0.0001;
     static constexpr size_t cutThreshold = 1;
     
     const GraphType& graph{static_cast<int>(instance.getNumberOfNodes())};
@@ -111,7 +111,7 @@ optional<IloRange> MtzAssymmetricUserCut(const IloEnv& env, const Data::CVRPInst
     // std::cout << minCutValue << std::endl;
     if(minCutValue < (cutThreshold - epsilon))
     {
-        // std::cout << "CUT FOUND ! " << minCutValue << std::endl;
+        //std::cout << "CUT FOUND ! " << minCutValue << " " << cutThreshold << std::endl;
         std::vector<size_t> firstSet;
         std::vector<size_t> secondSet;
         
@@ -126,10 +126,24 @@ optional<IloRange> MtzAssymmetricUserCut(const IloEnv& env, const Data::CVRPInst
             for(auto id2 : secondSet)
             {
                 expr += arcVarArray[id1 * instance.getNumberOfNodes() + id2 - 1];
+                // std::cout << arcValueArray[id1 * instance.getNumberOfNodes() + id2 - 1] << " " << std::endl;
             }
         }
         
-        return expr >= 1; 
+        /*std::cout << "First Set" << std::endl;
+        for(auto id1 : firstSet)
+        {
+            std::cout << id1 << " ";
+        }
+        std::cout << std::endl << "Second Set" << std::endl;
+        
+        for(auto id2 : secondSet)
+        {
+            std::cout << id2 << " ";
+        }
+        std::cout << std::endl;*/
+        
+        return expr >= static_cast<IloInt>(cutThreshold); 
     }
     
     return {};

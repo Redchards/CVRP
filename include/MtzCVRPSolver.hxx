@@ -30,7 +30,7 @@ ILOUSERCUTCALLBACK2(UserCutMtzCVRPSeparation, const Data::CVRPInstance&, instanc
         arcValueArray[id2 * instance.getNumberOfNodes() + id1 - 1] = getValue(arcVarArray[id2 * instance.getNumberOfNodes() + id1 - 1]);
     }
     
-    optional<IloRange> newExpr = CutHelper::MtzSymmetricUserCut(getEnv(), instance, arcVarArray, arcValueArray);
+    optional<IloRange> newExpr = CutHelper::MtzAssymmetricUserCut(getEnv(), instance, arcVarArray, arcValueArray);
     
     if(newExpr)
     {
@@ -60,6 +60,9 @@ ILOHEURISTICCALLBACK2(MtzPrimalHeuristicCallback, const Data::CVRPInstance&, ins
     
     IloNumArray newSol = CutHelper::MtzPrimalHeuristic(getEnv(), instance, arcVarArray, arcValueArray);
     setSolution(newVars, newSol);
+    
+    newVars.end();
+    newSol.end();
 }
 
 namespace Solver
