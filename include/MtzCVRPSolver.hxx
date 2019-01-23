@@ -30,7 +30,7 @@ ILOUSERCUTCALLBACK2(UserCutMtzCVRPSeparation, const Data::CVRPInstance&, instanc
         arcValueArray[id2 * instance.getNumberOfNodes() + id1 - 1] = getValue(arcVarArray[id2 * instance.getNumberOfNodes() + id1 - 1]);
     }
     
-    optional<IloRange> newExpr = CutHelper::MtzAssymmetricUserCut(getEnv(), instance, arcVarArray, arcValueArray);
+    optional<IloRange> newExpr = CutHelper::MtzSymmetricUserCut(getEnv(), instance, arcVarArray, arcValueArray);
     
     if(newExpr)
     {
@@ -190,8 +190,8 @@ class MtzCVRPSolver : GenericCVRPSolver<MtzCVRPSolver>
             
             IloCplex cplex(model);
             
-            cplex.add(UserCutMtzCVRPSeparation(env, instance, arcVarArray));
-            cplex.add(MtzPrimalHeuristicCallback(env, instance, arcVarArray));
+            //cplex.add(UserCutMtzCVRPSeparation(env, instance, arcVarArray));
+            //cplex.add(MtzPrimalHeuristicCallback(env, instance, arcVarArray));
             
              // cplex.setParam(IloCplex::Param::MIP::Tolerances::AbsMIPGap, 330.0);
             
@@ -233,12 +233,12 @@ class MtzCVRPSolver : GenericCVRPSolver<MtzCVRPSolver>
                     currentId = instance.idOf(*current) * instance.getNumberOfNodes() + instance.idOfDepot() - 1;
                         std::cout << currentId << std::endl;
                     startingValues[currentId] = 1;
-                }
+                }            
+                cplex.addMIPStart(startingVar, startingValues, IloCplex::MIPStartCheckFeas);
             }
             
            
             cplex.exportModel("sortie.lp");
-            cplex.addMIPStart(startingVar, startingValues, IloCplex::MIPStartCheckFeas);
             startingVar.end();
             startingValues.end();
             

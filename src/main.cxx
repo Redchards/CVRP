@@ -13,6 +13,7 @@
 #include <TVRPInstance.hxx>
 #include <OnePointExtraNeighbourhood.hxx>
 #include <AggTVRPSolver.hxx>
+#include <CutCVRPSolver.hxx>
 
 #include <iostream>
 #include <lemon/list_graph.h>
@@ -115,12 +116,11 @@ int main()
     std::cout << Coordinates() << std::endl;
     
     InstanceLoader loader{};
-    auto inst = *loader.loadCVRPInstance("instances/P/P-n22-k2.vrp");
+    std::string instanceName = "A/A-n33-k5";
+    auto inst = *loader.loadCVRPInstance(std::string{"instances/"} + instanceName + ".vrp");
     auto tinst = *loader.loadTVRPInstance("instances/P/P-n16-k8.tvrp");
     
-    std::cout << inst.getCoordinatesOf(inst.getNode(5)) << " : " << inst.getCoordinatesOf(inst.getNode(8)) << std::endl;
     
-    size_t iddd = 0;
     std::cout << "Number of vehicles : " << inst.getNumberOfVehicles() << std::endl;
     /*for(auto n = inst.getNodeIt(); n != lemon::INVALID; ++n)
     {
@@ -128,19 +128,25 @@ int main()
         std::cout << inst.idOf(n) << " : " << inst.getCoordinatesOf(n) << " : " << inst.getDemandOf(n) << std::endl;
     }*/
     
-    using FirstSolver = Solver::RouteAffectationBinPackingAdaptor<Solver::BinPackingMIPSolver>;
-    //using FirstSolver = Solver::SweepRouteAffectationSolver;
+    // using FirstSolver = Solver::RouteAffectationBinPackingAdaptor<Solver::BinPackingMIPSolver>;
+    using FirstSolver = Solver::SweepRouteAffectationSolver;
     Solver::TwoStepsCVRPSolver<FirstSolver, Solver::TwoOptTSPSolver> solver4({inst}, {});
-    Solver::StochasticDescentCVRPSolver<Solver::TwoStepsCVRPSolver<FirstSolver, Solver::TwoOptTSPSolver>, Heuristic::OnePointExtraNeighbourhood> stochSolv{solver4, 10000};
+    Solver::StochasticDescentCVRPSolver<Solver::TwoStepsCVRPSolver<FirstSolver, Solver::TwoOptTSPSolver>, Heuristic::OnePointExtraNeighbourhood> stochSolv{solver4, 100000};
     auto sol4 = solver4.solve(inst);
     std::cout << sol4.computeCost() << std::endl;
     auto sol5 = stochSolv.solve(inst);
     std::cout << "sol : " << sol5.computeCost() << std::endl;
     Solver::MtzCVRPSolver mtzSolver{};
+    Solver::CutCVRPSolver cutSolver{};
+    auto sol6 = cutSolver.solve(inst);
     //auto sol6 = mtzSolver.solve(inst, sol5);
     SolutionExporter solExporter{};
-    solExporter.exportSolutionGraph(sol4, "testSol.jpg");
-    
+    solExporter.exportSolutionGraph(sol4, std::string{"solutions/"} + instanceName + "no_desc.jpg");
+    solExporter.exportSolutionGraph(sol5, std::string{"solutions/"} + instanceName + "desc.jpg");
+    solExporter.exportSolutionGraph(sol6, std::string{"solutions/"} + instanceName + "exact.jpg");
+    solExporter.exportSolution(sol6, std::string{"solutions/"} + instanceName + ".sol");
+    std::cout << "Hi"  << std::endl;
+    //solExporter.exportSolutionGraph(*loadSol.loadSolution("instance/P/P-n22-k2.sol"), "testSol3.jpg");
     /*for(auto n = tinst.getNodeIt(); n != lemon::INVALID; ++n)
     {
         std::cout << "Node : " << tinst.idOf(n) << std::endl;
@@ -178,8 +184,8 @@ int main()
     }*/
     std::cout << std::endl;
     Solver::AggTVRPSolver tvrpSolver;
-    auto tsol = tvrpSolver.solve(tinst);
-    solExporter.exportSolutionGraph(tsol, "tvrp-test.png");
+    //auto tsol = tvrpSolver.solve(tinst);
+    //solExporter.exportSolutionGraph(tsol, "tvrp-test.png");
     //solExporter.exportSolution(sol6, "solutions/P-n22-k2.sol");
     //solExporter.exportSolutionGraph(sol6, "solutions/PlotP-n22-k2.jpg");
     //SolutionLoader solLoader{};

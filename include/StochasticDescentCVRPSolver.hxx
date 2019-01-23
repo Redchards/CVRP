@@ -85,7 +85,7 @@ class StochasticDescentCVRPSolver : public GenericCVRPSolver<StochasticDescentCV
         std::cout << "Done" << std::endl;
         CVRPSolutionCostProcessor<1000000> finalCostProcessor;
         std::cout << finalCostProcessor.satisfiesConstraints(instance, bestSolData) << std::endl;
-        /*while(!finalCostProcessor.satisfiesConstraints(instance, bestSolData))
+        while(!finalCostProcessor.satisfiesConstraints(instance, bestSolData))
         {
             auto newSolData = dynamic_get(neighbourhoods_, distrib(randomEngine)).randomNeighbour(bestSolData);
             if(costProcessor.computeCost(instance, newSolData) < costProcessor.computeCost(instance, bestSolData))
@@ -93,7 +93,7 @@ class StochasticDescentCVRPSolver : public GenericCVRPSolver<StochasticDescentCV
                 bestSolData = newSolData;
                 std::cout << "FOUND ! " << std::endl;
             }
-        }*/
+        }
         
         return {instance, bestSolData};
     }

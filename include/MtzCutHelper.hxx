@@ -25,7 +25,7 @@ optional<IloRange> MtzSymmetricUserCut(const IloEnv& env, const Data::CVRPInstan
     using NodeMap = GraphType::NodeMap<bool>;
     
     static constexpr double REGULARIZATION_FACTOR = 1000.0;
-    static constexpr double epsilon = 0.00001;
+    static constexpr double epsilon = 0.01;
     static constexpr size_t cutThreshold = 1;
     
     const GraphType& graph = instance.getUnderlyingGraph();
@@ -85,7 +85,7 @@ optional<IloRange> MtzAssymmetricUserCut(const IloEnv& env, const Data::CVRPInst
     using NodeMap = GraphType::NodeMap<bool>;
     
     static constexpr double REGULARIZATION_FACTOR = 1000000.0;
-    static constexpr double epsilon = 0.0001;
+    static constexpr double epsilon = 0.01;
     static constexpr size_t cutThreshold = 1;
     
     const GraphType& graph{static_cast<int>(instance.getNumberOfNodes())};
@@ -111,7 +111,7 @@ optional<IloRange> MtzAssymmetricUserCut(const IloEnv& env, const Data::CVRPInst
     // std::cout << minCutValue << std::endl;
     if(minCutValue < (cutThreshold - epsilon))
     {
-        //std::cout << "CUT FOUND ! " << minCutValue << " " << cutThreshold << std::endl;
+        std::cout << "CUT FOUND ! " << minCutValue << " " << cutThreshold << std::endl;
         std::vector<size_t> firstSet;
         std::vector<size_t> secondSet;
         
